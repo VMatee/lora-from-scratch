@@ -15,11 +15,21 @@ matrix and operation is visible. It is NOT an end-to-end LLM fine-tuning system.
 python -m pip install -e '.[dev]'
 python -m pytest -q
 python -m lora_lab.demo --steps 160
+python -m lora_lab.inject_demo
 ```
 
 The toy experiment fits a synthetic low-rank correction to a frozen layer;
 compare initial and final MSE and the fraction of parameters trained.
 Results are not LLM benchmark results.
+
+## From-scratch adapter injection
+
+The code also contains a hand-written module traversal and injection layer:
+insert LoRA into selected nested linear layers, freeze the base model,
+save **only** the low-rank A/B matrices, and verify merge/unmerge equivalence.
+This supports small neural networks without using PEFT or Transformers.
+
+See [the implementation and mathematics](docs/implementation.md).
 
 ## What happens
 
@@ -47,7 +57,7 @@ input x  ----> [ Frozen linear layer W, b ] -----+----> output
 
 ## Where this stops
 
-No QLoRA quantization, paged optimizer, pretrained Transformer insertion,
+No QLoRA quantization, paged optimizer, pretrained checkpoint integration,
 checkpoint compatibility, distributed training, or task benchmarks. These
 would be natural extensions after understanding the matrix update.
 
