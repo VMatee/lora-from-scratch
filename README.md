@@ -2,8 +2,11 @@
 
 [![Tests](https://github.com/VMatee/lora-from-scratch/actions/workflows/tests.yml/badge.svg)](https://github.com/VMatee/lora-from-scratch/actions/workflows/tests.yml)
 
-Understand how **LoRA** reduces the number of trainable parameters using the update
-`W' = W + (alpha/r) * (B @ A)` with a frozen base matrix `W`.
+This repository implements low-rank neural adaptation using two explicit trainable matrices. Instead of changing a frozen weight matrix $W$, it learns a compact correction:
+
+$
+W_{\mathrm{adapted}}=W+\frac{\alpha}{r}BA.
+$
 
 This is a compact, independent PyTorch implementation of a **LoRA-adapted linear
 layer**. It deliberately avoids `peft` and Hugging Face adapters so every learned
@@ -21,6 +24,12 @@ python -m lora_lab.inject_demo
 The toy experiment fits a synthetic low-rank correction to a frozen layer;
 compare initial and final MSE and the fraction of parameters trained.
 Results are not LLM benchmark results.
+
+## The mathematical model
+
+The adapter uses $r(d_{mathrm{in}}+d_{mathrm{out}})$ trainable weights, instead of updating all $d_{mathrm{in}}d_{mathrm{out}}$ weights in a dense layer. The repository includes a complete explanation of the forward computation, chain-rule gradients, initialization, merging and parameter savings, with worked matrix calculations.
+
+**[Read the full mathematical derivation →](docs/mathematics.md)**
 
 ## From-scratch adapter injection
 
@@ -63,7 +72,7 @@ would be natural extensions after understanding the matrix update.
 
 **Reading:** Hu et al. (2021), *LoRA: Low-Rank Adaptation of Large Language Models*.
 
-## Interactive notebook
+## Reproducible notebook
 
 Open [the step-by-step notebook](notebooks/01_walkthrough.ipynb) in Jupyter after installing this repository with `python -m pip install -e ".[dev]"`.
 
