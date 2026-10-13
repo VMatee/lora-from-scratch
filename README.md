@@ -4,9 +4,9 @@
 
 This repository implements low-rank neural adaptation using two explicit trainable matrices. Instead of changing a frozen weight matrix $W$, it learns a compact correction:
 
-$
+```math
 W_{\mathrm{adapted}}=W+\frac{\alpha}{r}BA.
-$
+```
 
 This is a compact, independent PyTorch implementation of a **LoRA-adapted linear
 layer**. It deliberately avoids `peft` and Hugging Face adapters so every learned
@@ -27,7 +27,7 @@ Results are not LLM benchmark results.
 
 ## The mathematical model
 
-The adapter uses $r(d_{mathrm{in}}+d_{mathrm{out}})$ trainable weights, instead of updating all $d_{mathrm{in}}d_{mathrm{out}}$ weights in a dense layer. The repository includes a complete explanation of the forward computation, chain-rule gradients, initialization, merging and parameter savings, with worked matrix calculations.
+The adapter uses $r(d_{\mathrm{in}}+d_{\mathrm{out}})$ trainable weights, instead of updating all $d_{\mathrm{in}}d_{\mathrm{out}}$ weights in a dense layer. The repository includes a complete explanation of the forward computation, chain-rule gradients, initialization, merging and parameter savings, with worked matrix calculations.
 
 **[Read the full mathematical derivation →](docs/mathematics.md)**
 

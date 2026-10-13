@@ -8,17 +8,17 @@ When a model has millions of weights, updating the entire model may be unnecessa
 
 For an input feature vector $x\in\mathbb{R}^{d_{\mathrm{in}}}$, a conventional dense layer computes
 
-$$
+```math
 y=Wx+b,
 \qquad
 W\in\mathbb{R}^{d_{\mathrm{out}}\times d_{\mathrm{in}}}.
-$$
+```
 
 An ordinary full-parameter adaptation would update all $d_{\mathrm{out}}d_{\mathrm{in}}$ elements of $W$. Instead, LoRA holds $W$ and $b$ fixed and learns a correction $\Delta W$:
 
-$$
+```math
 y_{\mathrm{LoRA}}=(W+\Delta W)x+b.
-$$
+```
 
 The central assumption is not that $W$ has low rank; it is that a useful *change* to $W$ may be approximated by a low-rank factorization.
 
@@ -26,28 +26,28 @@ The central assumption is not that $W$ has low rank; it is that a useful *change
 
 Choose an adapter rank $r$ satisfying $1\le r\le\min(d_{\mathrm{in}},d_{\mathrm{out}})$. Construct two trainable matrices:
 
-$$
+```math
 A\in\mathbb{R}^{r\times d_{\mathrm{in}}},
 \qquad
 B\in\mathbb{R}^{d_{\mathrm{out}}\times r}.
-$$
+```
 
 Their product has exactly the shape of the original weight matrix. The update used in [layers.py](../src/lora_lab/layers.py) is
 
-$$
+```math
 \boxed{
 \Delta W=\frac{\alpha}{r}BA
 }
-$$
+```
 
 where $\alpha>0$ is a user-configured scale. Therefore,
 
-$$
+```math
 \boxed{
 y_{\mathrm{LoRA}}
 =Wx+b+\frac{\alpha}{r}B(Ax).
 }
-$$
+```
 
 The parentheses matter computationally. First multiply $A$ by $x$, producing an $r$-dimensional intermediate vector; then multiply by $B$. The code performs the two small linear operations directly rather than constructing a dense correction matrix at every forward pass.
 
@@ -55,34 +55,34 @@ The parentheses matter computationally. First multiply $A$ by $x$, producing an 
 
 Let the input and output dimensions both be 2, let $r=1$, and take $\alpha=1$. Start with an identity base layer, no bias, and the following adapter factors:
 
-$$
+```math
 W=\begin{bmatrix}1&0\\0&1\end{bmatrix},
 \qquad
 A=\begin{bmatrix}1&-1\end{bmatrix},
 \qquad
 B=\begin{bmatrix}2\\3\end{bmatrix}.
-$$
+```
 
 The correction becomes
 
-$$
+```math
 BA=
 \begin{bmatrix}2&-2\\3&-3\end{bmatrix},
 \qquad
 W+\Delta W=
 \begin{bmatrix}3&-2\\3&-2\end{bmatrix}.
-$$
+```
 
 For $x=[1,2]^\top$, the frozen base produces $Wx=[1,2]^\top$. The adapter first gives $Ax=-1$ and then $B(Ax)=[-2,-3]^\top$. The combined output is
 
-$$
+```math
 y_{\mathrm{LoRA}}=
 \begin{bmatrix}1\\2\end{bmatrix}
 +
 \begin{bmatrix}-2\\-3\end{bmatrix}
 =
 \begin{bmatrix}-1\\-1\end{bmatrix}.
-$$
+```
 
 Computing the merged matrix $(W+BA)x$ gives the same result, illustrating the merge/unmerge equivalence checked by the test suite.
 
@@ -90,30 +90,30 @@ Computing the merged matrix $(W+BA)x$ gives the same result, illustrating the me
 
 The dense layer has $d_{\mathrm{out}}d_{\mathrm{in}}$ weight elements. The two LoRA matrices together have
 
-$$
+```math
 N_{\mathrm{adapter}}
 =rd_{\mathrm{in}}+d_{\mathrm{out}}r
 =r(d_{\mathrm{in}}+d_{\mathrm{out}})
-$$
+```
 
 trainable elements. Ignoring the frozen bias, their ratio is
 
-$$
+```math
 \rho=\frac{r(d_{\mathrm{in}}+d_{\mathrm{out}})}
 {d_{\mathrm{in}}d_{\mathrm{out}}}.
-$$
+```
 
 As a numerical illustration, suppose $d_{\mathrm{in}}=d_{\mathrm{out}}=4096$ and $r=8$:
 
-$$
+```math
 N_{\mathrm{dense}}=4096^2=16\,777\,216,
 \qquad
 N_{\mathrm{adapter}}=8(4096+4096)=65\,536,
-$$
+```
 
-$$
+```math
 \rho=0.00390625=0.390625\%.
-$$
+```
 
 Thus, **only 0.39% as many weight parameters would be trainable** for that specific linear layer. This is a parameter-count example, not a measured training-memory or throughput reduction. Actual memory use also depends on activations, gradients, optimizer state and the rest of the network.
 
@@ -123,21 +123,21 @@ The base layer is frozen by setting its parameters to not require gradients. Gra
 
 For one training example, define $s=\alpha/r$, $u=Ax$ and $g=\partial\mathcal{L}/\partial y$. From
 
-$$
+```math
 y=Wx+b+sBu
-$$
+```
 
 the chain rule gives the matrix gradients
 
-$$
+```math
 \frac{\partial\mathcal{L}}{\partial B}
 =s\,g\,u^\top,
-$$
+```
 
-$$
+```math
 \frac{\partial\mathcal{L}}{\partial A}
 =s\,(B^\top g)\,x^\top.
-$$
+```
 
 The implementation initializes $A$ with small random values and initializes $B=0$. Initially, $\Delta W=0$, so the adapted layer exactly matches its original base layer. There is a useful subtlety: at the first backward pass, $\partial\mathcal{L}/\partial A=0$ because $B$ is still zero, whereas the gradient for $B$ can be nonzero. Once $B$ starts changing, both matrices can learn.
 
@@ -147,10 +147,10 @@ These properties are checked using actual PyTorch gradients in [test_lora.py](..
 
 After training, the learned correction can be incorporated into the frozen weight matrix once:
 
-$$
+```math
 W_{\mathrm{merged}}
 =W+sBA.
-$$
+```
 
 Inference then uses the ordinary dense computation $W_{\mathrm{merged}}x+b$. The corresponding unmerge operation subtracts $sBA$ to recover the original $W$.
 
@@ -166,12 +166,12 @@ A lightweight checkpoint stores, for each adapted layer, the name, rank, scale a
 
 The bundled demonstration constructs a synthetic target that differs from a frozen layer by a low-rank correction. Training minimizes mean squared error:
 
-$$
-\operatorname{MSE}
+```math
+\mathrm{MSE}
 =\frac{1}{n}\sum_{i=1}^{n}
 \left\|f_{\mathrm{LoRA}}(x_i)-y_i^\star\right\|_2^2
 \Big/ d_{\mathrm{out}}.
-$$
+```
 
 This expression is the mean over samples and output features, matching the tensor mean of squared elementwise differences in [demo.py](../src/lora_lab/demo.py). The script prints the MSE before and after adaptation and the ratio of trained parameters. Numerical tests also check merge/unmerge equivalence and adapter-only checkpoint loading.
 
